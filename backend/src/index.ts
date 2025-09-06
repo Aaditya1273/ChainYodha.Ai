@@ -41,7 +41,7 @@ app.use("/submit-onchain", oracleRoutes)
 // API documentation endpoint
 app.get("/docs", (req, res) => {
   res.json({
-    name: "TrustGrid.AI Backend API",
+    name: "ChainYodha.Ai Backend API",
     version: "1.0.0",
     endpoints: {
       "POST /compute-score": "Compute trust score for a wallet",
@@ -49,7 +49,7 @@ app.get("/docs", (req, res) => {
       "POST /submit-onchain": "Submit signed score to blockchain",
       "GET /health": "Health check endpoint",
     },
-    documentation: "https://docs.trustgrid.ai",
+    documentation: "https://docs.chainyodha.ai",
   })
 })
 
@@ -70,7 +70,7 @@ async function startServer() {
 
     // Start server
     app.listen(PORT, () => {
-      logger.info(`🚀 TrustGrid.AI Backend running on port ${PORT}`)
+      logger.info(`🚀 ChainYodha.Ai Backend running on port ${PORT}`)
       logger.info(`📖 API Documentation: http://localhost:${PORT}/docs`)
       logger.info(`🏥 Health Check: http://localhost:${PORT}/health`)
     })

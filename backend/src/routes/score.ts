@@ -85,7 +85,7 @@ router.post(
 
       // Sign the score
       const timestamp = Math.floor(Date.now() / 1000)
-      const source = ethers.keccak256(ethers.toUtf8Bytes("trustgrid-ai-v1"))
+      const source = ethers.keccak256(ethers.toUtf8Bytes("chainyodha-ai-v1"))
       const signature = await oracleService.signScore(walletAddress, scoreResult.score, timestamp, source, metadataHash)
 
       // Save to database

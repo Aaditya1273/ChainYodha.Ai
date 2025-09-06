@@ -5,7 +5,7 @@ import "../solidity/TrustOracle.sol";
 
 /**
  * @title DeFiIntegration
- * @dev Example contract showing how DeFi protocols can integrate TrustGrid.AI
+ * @dev Example contract showing how DeFi protocols can integrate ChainYodha.Ai
  */
 contract DeFiIntegration {
     TrustOracle public immutable trustOracle;

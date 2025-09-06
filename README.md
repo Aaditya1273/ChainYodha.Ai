@@ -18,8 +18,8 @@ ChainYodha.Ai provides transparent wallet and project trust scores derived from 
 
 1. **Clone and setup**
 \`\`\`bash
-git clone https://github.com/your-username/trustgrid-ai.git
-cd trustgrid-ai
+git clone https://github.com/your-username/chainyodha-ai.git
+cd chainyodha-ai
 ./scripts/setup_local.sh
 \`\`\`
 
@@ -86,8 +86,8 @@ OPENAI_API_KEY=your_openai_key
 
 ### Arbitrum Sepolia Testnet
 - Contract: `0x...` (will be populated after deployment)
-- Frontend: `https://trustgrid-ai.vercel.app`
-- API: `https://api.trustgrid-ai.com`
+- Frontend: `https://chainyodha-ai.vercel.app`
+- API: `https://api.chainyodha-ai.com`
 
 ## License
 
