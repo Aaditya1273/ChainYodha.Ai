@@ -1,0 +1,22 @@
+{
+  "name": "@trustgrid/contracts",
+  "version": "1.0.0",
+  "description": "TrustGrid.AI Smart Contracts",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "deploy:sepolia": "hardhat run scripts/deploy.ts --network arbitrumSepolia",
+    "verify": "hardhat verify --network arbitrumSepolia",
+    "lint": "solhint 'contracts/**/*.sol'"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.0.0"
+  },
+  "devDependencies": {
+    "hardhat": "^2.19.1",
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "@nomicfoundation/hardhat-verify": "^2.0.1",
+    "typescript": "^5.2.2",
+    "solhint": "^4.0.0"
+  }
+}

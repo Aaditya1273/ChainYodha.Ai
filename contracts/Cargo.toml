@@ -1,0 +1,19 @@
+[package]
+name = "trust-oracle-stylus"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+stylus-sdk = "0.4.2"
+alloy-primitives = "0.4.2"
+alloy-sol-types = "0.4.2"
+
+[features]
+export-abi = ["stylus-sdk/export-abi"]
+
+[[bin]]
+name = "trust-oracle-stylus"
+path = "src/main.rs"
+
+[lib]
+crate-type = ["cdylib"]
