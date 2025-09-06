@@ -4,7 +4,7 @@ An onchain AI-powered trust & risk scoring infrastructure for Web3 on Arbitrum.
 
 ## Overview
 
-TrustGrid.AI provides transparent wallet and project trust scores derived from onchain activity and optional offchain signals. It exposes an onchain oracle contract where dApps can query wallet trust scores and integrates with a backend AI scoring pipeline.
+ChainYodha.Ai provides transparent wallet and project trust scores derived from onchain activity and optional offchain signals. It exposes an onchain oracle contract where dApps can query wallet trust scores and integrates with a backend AI scoring pipeline.
 
 ## Quick Start
 
