@@ -9,8 +9,13 @@ export const metadata: Metadata = {
   title: 'ChainYodha.Ai - Onchain Trust & Risk Scoring',
   description: 'AI-powered trust and risk scoring infrastructure for Web3 on Arbitrum',
   manifest: '/manifest.json',
+}
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
   themeColor: '#000000',
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=1',
 }
 
 export default function RootLayout({
