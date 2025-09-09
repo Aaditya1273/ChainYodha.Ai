@@ -33,7 +33,7 @@ export default async function handler(req: any, res: any) {
 
         // Generate dynamic score based on wallet address
         const addressHash = wallet.toLowerCase().slice(2) // Remove 0x prefix
-        const hashSum = addressHash.split('').reduce((sum, char) => sum + parseInt(char, 16) || 0, 0)
+        const hashSum = addressHash.split('').reduce((sum: number, char: string) => sum + parseInt(char, 16) || 0, 0)
         
         // Create pseudo-random but deterministic values based on wallet address
         const baseScore = 20 + (hashSum % 60) // Score between 20-80
