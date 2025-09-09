@@ -1,83 +1,79 @@
-import express from "express"
-import cors from "cors"
-import helmet from "helmet"
-import dotenv from "dotenv"
-import "reflect-metadata"
+import { VercelRequest, VercelResponse } from '@vercel/node'
 
-import { simpleStorage } from "../src/database/simple-storage"
-import { logger } from "../src/utils/logger"
-import { errorHandler } from "../src/middleware/error-handler"
-import { rateLimiter } from "../src/middleware/rate-limiter"
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Enable CORS
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
 
-// Import routes
-import scoreRoutes from "../src/routes/score"
-import walletRoutes from "../src/routes/wallet"
-import oracleRoutes from "../src/routes/oracle"
-import healthRoutes from "../src/routes/health"
-
-dotenv.config()
-
-const app = express()
-const PORT = process.env.PORT || 3001
-
-// Middleware
-app.use(helmet())
-app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://chainyodha-ai.netlify.app', 'https://your-frontend-domain.com']
-    : ['http://localhost:3000', 'http://localhost:3001'],
-  credentials: true
-}))
-app.use(express.json({ limit: '10mb' }))
-app.use(express.urlencoded({ extended: true }))
-app.use(rateLimiter)
-
-// Routes
-app.use('/api/health', healthRoutes)
-app.use('/api/score', scoreRoutes)
-app.use('/api/wallet', walletRoutes)
-app.use('/api/oracle', oracleRoutes)
-
-// Root route
-app.get('/', (req, res) => {
-  res.json({
-    message: 'ChainYodha.Ai Backend API',
-    version: '1.0.0',
-    status: 'running',
-    endpoints: {
-      health: '/api/health',
-      score: '/api/score',
-      wallet: '/api/wallet',
-      oracle: '/api/oracle'
-    }
-  })
-})
-
-// Error handling
-app.use(errorHandler)
-
-// Initialize database
-async function initializeDatabase() {
-  try {
-    await simpleStorage.initialize()
-    logger.info("Database initialized successfully")
-  } catch (error) {
-    logger.error("Failed to initialize database:", error)
+  if (req.method === 'OPTIONS') {
+    res.status(200).end()
+    return
   }
-}
 
-// For Vercel serverless function
-export default async function handler(req: any, res: any) {
-  await initializeDatabase()
-  return app(req, res)
-}
+  try {
+    const { url, method } = req
 
-// For local development
-if (process.env.NODE_ENV !== 'production') {
-  initializeDatabase().then(() => {
-    app.listen(PORT, () => {
-      logger.info(`Server running on port ${PORT}`)
-      logger.info(`Environment: ${process.env.NODE_ENV}`)
+    // Health check
+    if (url === '/api/health' || url === '/health') {
+      return res.status(200).json({
+        status: 'healthy',
+        timestamp: new Date().toISOString(),
+        service: 'ChainYodha.Ai Backend'
+      })
+    }
+
+    // Score endpoint
+    if (url === '/api/score' || url === '/score') {
+      if (method === 'POST') {
+        const { wallet } = req.body || {}
+        
+        if (!wallet) {
+          return res.status(400).json({ error: 'Wallet address required' })
+        }
+
+        // Mock response for now
+        return res.status(200).json({
+          score: 44,
+          confidence: 70,
+          breakdown: [
+            { feature: 'Transaction History', weight: 25, value: 150, normalizedValue: 0.75 },
+            { feature: 'Smart Contract Usage', weight: 20, value: 5, normalizedValue: 0.5 },
+            { feature: 'Portfolio Stability', weight: 15, value: 0.8, normalizedValue: 0.8 },
+            { feature: 'Account Age', weight: 15, value: 180, normalizedValue: 0.6 },
+            { feature: 'Social Presence', weight: 10, value: 0, normalizedValue: 0 },
+            { feature: 'ENS Domain', weight: 5, value: 0, normalizedValue: 0 },
+            { feature: 'Cross-chain Activity', weight: 5, value: 2, normalizedValue: 0.4 },
+            { feature: 'DeFi Engagement', weight: 5, value: 10, normalizedValue: 0.7 }
+          ],
+          explanation: 'This wallet shows moderate activity with regular transactions and some DeFi engagement. Limited social presence and no ENS domain.',
+          timestamp: Math.floor(Date.now() / 1000),
+          cached: false
+        })
+      }
+    }
+
+    // Root endpoint
+    if (url === '/' || url === '/api') {
+      return res.status(200).json({
+        message: 'ChainYodha.Ai Backend API',
+        version: '1.0.0',
+        status: 'running',
+        endpoints: {
+          health: '/api/health',
+          score: '/api/score'
+        }
+      })
+    }
+
+    // 404 for other routes
+    return res.status(404).json({ error: 'Endpoint not found' })
+
+  } catch (error) {
+    console.error('API Error:', error)
+    return res.status(500).json({ 
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : 'Unknown error'
     })
-  })
+  }
 }
