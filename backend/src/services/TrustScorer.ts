@@ -251,8 +251,12 @@ export class TrustScorer {
     // Base confidence from onchain data availability
     if (onchain.totalTransactions > 0) confidence += 30
     if (onchain.contractInteractions > 0) confidence += 20
-    if (onchain.accountAge > 7) confidence += 20
+    if (onchain.accountAge > 0) confidence += 20  // Changed from > 7 to > 0
 
+    // Additional confidence based on activity levels
+    if (onchain.totalTransactions > 10) confidence += 10
+    if (onchain.totalTransactions > 100) confidence += 10
+    
     // Bonus for additional signals
     if (onchain.hasENS) confidence += 10
     if (offchain.farcasterFollowers > 0) confidence += 10

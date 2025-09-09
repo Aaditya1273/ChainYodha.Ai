@@ -10,6 +10,9 @@ const nextConfig = {
     domains: ["localhost"],
     unoptimized: true,
   },
+  output: 'export',
+  trailingSlash: true,
+  distDir: 'out',
   async rewrites() {
     return [
       {

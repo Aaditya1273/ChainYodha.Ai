@@ -1,9 +1,6 @@
-import { Router } from "express"
-import { param, validationResult } from "express-validator"
-import { AppDataSource } from "../database/data-source"
-import { TrustScore } from "../database/entities/TrustScore"
-import { WalletProfile } from "../database/entities/WalletProfile"
-import { ScoreHistory } from "../database/entities/ScoreHistory"
+import { Router, Request, Response } from "express"
+const { param, validationResult } = require("express-validator")
+import { simpleStorage } from "../database/simple-storage"
 import { logger } from "../utils/logger"
 
 const router = Router()
@@ -12,7 +9,7 @@ const router = Router()
 router.get(
   "/:address",
   [param("address").isEthereumAddress().withMessage("Invalid Ethereum address")],
-  async (req, res) => {
+  async (req: Request, res: Response) => {
     try {
       const errors = validationResult(req)
       if (!errors.isEmpty()) {
@@ -25,27 +22,15 @@ router.get(
       const walletAddress = req.params.address.toLowerCase()
       logger.info(`Fetching wallet data for: ${walletAddress}`)
 
-      const trustScoreRepo = AppDataSource.getRepository(TrustScore)
-      const walletProfileRepo = AppDataSource.getRepository(WalletProfile)
-      const scoreHistoryRepo = AppDataSource.getRepository(ScoreHistory)
-
       // Get current trust score
-      const trustScore = await trustScoreRepo.findOne({
-        where: { walletAddress },
-        order: { updatedAt: "DESC" },
-      })
+      const trustScore = await simpleStorage.findTrustScoreByAddress(walletAddress)
 
       // Get wallet profile
-      const walletProfile = await walletProfileRepo.findOne({
-        where: { walletAddress },
-      })
+      const walletProfile = await simpleStorage.findWalletProfileByAddress(walletAddress)
 
       // Get score history (last 30 entries)
-      const scoreHistory = await scoreHistoryRepo.find({
-        where: { walletAddress },
-        order: { createdAt: "DESC" },
-        take: 30,
-      })
+      const scoreHistory = await simpleStorage.findScoreHistoryByAddress(walletAddress)
+      const recentHistory = scoreHistory.slice(0, 30)
 
       if (!trustScore) {
         return res.status(404).json({
@@ -57,36 +42,36 @@ router.get(
       res.json({
         wallet: walletAddress,
         trustScore: {
-          score: trustScore.score,
-          timestamp: trustScore.timestamp,
-          explanation: trustScore.explanation,
-          breakdown: trustScore.breakdown,
-          submittedOnchain: trustScore.submittedOnchain,
-          transactionHash: trustScore.transactionHash,
+          score: trustScore.overallScore,
+          timestamp: Math.floor((trustScore.updatedAt?.getTime() || 0) / 1000),
+          explanation: "Trust score computed from on-chain analysis",
+          breakdown: {
+            transactionHistory: trustScore.transactionHistory,
+            contractInteraction: trustScore.contractInteraction,
+            riskAssessment: trustScore.riskAssessment,
+            networkActivity: trustScore.networkActivity,
+          },
+          submittedOnchain: false,
+          transactionHash: null,
           lastUpdated: trustScore.updatedAt,
         },
         profile: walletProfile
           ? {
               totalTransactions: walletProfile.totalTransactions,
-              contractInteractions: walletProfile.contractInteractions,
-              averageTransactionValue: walletProfile.averageTransactionValue,
-              uniqueContractsInteracted: walletProfile.uniqueContractsInteracted,
-              swapFrequency: walletProfile.swapFrequency,
-              bridgeTransactions: walletProfile.bridgeTransactions,
-              topTokens: walletProfile.topTokens,
-              portfolioVolatility: walletProfile.portfolioVolatility,
-              hasENS: walletProfile.hasENS,
-              farcasterFollowers: walletProfile.farcasterFollowers,
-              githubContributions: walletProfile.githubContributions,
-              accountAge: walletProfile.accountAge,
-              lastAnalyzed: walletProfile.lastAnalyzed,
+              averageTransactionValue: walletProfile.avgTransactionValue,
+              uniqueContractsInteracted: walletProfile.uniqueContracts,
+              gasEfficiency: walletProfile.gasEfficiency,
+              timeSpread: walletProfile.timeSpread,
+              riskLevel: walletProfile.riskLevel,
+              classification: walletProfile.classification,
+              lastAnalyzed: walletProfile.updatedAt,
             }
           : null,
-        history: scoreHistory.map((entry) => ({
+        history: recentHistory.map((entry) => ({
           score: entry.score,
-          timestamp: entry.timestamp,
-          explanation: entry.explanation,
-          createdAt: entry.createdAt,
+          timestamp: Math.floor((entry.timestamp?.getTime() || 0) / 1000),
+          explanation: "Historical trust score",
+          createdAt: entry.timestamp,
         })),
       })
     } catch (error) {
@@ -103,7 +88,7 @@ router.get(
 router.get(
   "/:address/history",
   [param("address").isEthereumAddress().withMessage("Invalid Ethereum address")],
-  async (req, res) => {
+  async (req: Request, res: Response) => {
     try {
       const errors = validationResult(req)
       if (!errors.isEmpty()) {
@@ -116,21 +101,17 @@ router.get(
       const walletAddress = req.params.address.toLowerCase()
       const limit = Number.parseInt(req.query.limit as string) || 50
 
-      const scoreHistoryRepo = AppDataSource.getRepository(ScoreHistory)
-      const history = await scoreHistoryRepo.find({
-        where: { walletAddress },
-        order: { createdAt: "DESC" },
-        take: Math.min(limit, 100),
-      })
+      const history = await simpleStorage.findScoreHistoryByAddress(walletAddress)
+      const limitedHistory = history.slice(0, Math.min(limit, 100))
 
       res.json({
         wallet: walletAddress,
-        history: history.map((entry) => ({
+        history: limitedHistory.map((entry) => ({
           score: entry.score,
-          timestamp: entry.timestamp,
-          breakdown: entry.breakdown,
-          explanation: entry.explanation,
-          createdAt: entry.createdAt,
+          timestamp: Math.floor((entry.timestamp?.getTime() || 0) / 1000),
+          breakdown: null,
+          explanation: "Historical trust score",
+          createdAt: entry.timestamp,
         })),
       })
     } catch (error) {

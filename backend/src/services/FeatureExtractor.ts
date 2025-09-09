@@ -180,10 +180,23 @@ export class FeatureExtractor {
 
   private async calculateAccountAge(walletAddress: string): Promise<number> {
     try {
-      // In reality, find the first transaction block and calculate age
-      // For demo, return a random age between 30-365 days
-      return Math.floor(Math.random() * 335) + 30
+      // Use transaction count as a proxy for account age
+      // More transactions generally indicate an older, more established account
+      const txCount = await this.provider.getTransactionCount(walletAddress)
+      
+      if (txCount === 0) return 0
+      
+      // Estimate age based on transaction count
+      // This is a heuristic: more active accounts are likely older
+      if (txCount < 10) return 7    // New account, ~1 week
+      if (txCount < 50) return 30   // ~1 month
+      if (txCount < 100) return 90  // ~3 months
+      if (txCount < 500) return 180 // ~6 months
+      if (txCount < 1000) return 365 // ~1 year
+      return 730 // 2+ years for very active accounts
+      
     } catch (error) {
+      logger.error("Error calculating account age:", error)
       return 0
     }
   }

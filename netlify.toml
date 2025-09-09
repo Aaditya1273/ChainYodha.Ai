@@ -1,0 +1,25 @@
+[build]
+  base = "frontend"
+  publish = "frontend/out"
+  command = "npm run build && npm run export"
+
+[build.environment]
+  NODE_VERSION = "18"
+  NPM_VERSION = "9"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[context.production.environment]
+  NEXT_PUBLIC_API_URL = "https://api.chainyodha-ai.com"
+  NODE_ENV = "production"
+
+[context.deploy-preview.environment]
+  NEXT_PUBLIC_API_URL = "https://api-staging.chainyodha-ai.com"
+  NODE_ENV = "development"
+
+[context.branch-deploy.environment]
+  NEXT_PUBLIC_API_URL = "https://api-dev.chainyodha-ai.com"
+  NODE_ENV = "development"

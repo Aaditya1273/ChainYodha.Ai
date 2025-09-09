@@ -9,12 +9,14 @@ interface TrustScore {
     feature: string
     weight: number
     value: number
-    impact: number
+    normalizedValue: number
   }>
   explanation: string
   confidence: number
   timestamp: number
   cached: boolean
+  metadataHash?: string
+  signature?: string
 }
 
 interface TrustScoreCardProps {
@@ -38,7 +40,7 @@ export function TrustScoreCard({ walletAddress }: TrustScoreCardProps) {
     setError(null)
     
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/compute-score`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/score`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -67,7 +69,7 @@ export function TrustScoreCard({ walletAddress }: TrustScoreCardProps) {
     
     setSubmitting(true)
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/submit-onchain`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/oracle/submit-onchain`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -187,12 +189,24 @@ export function TrustScoreCard({ walletAddress }: TrustScoreCardProps) {
           {recommendation.action}
         </div>
 
-        {/* Confidence & Timestamp */}
-        <div className="flex justify-between items-center mb-4 text-sm text-gray-600">
-          <span>Confidence: {Math.round(trustScore.confidence * 100)}%</span>
-          <span>
-            {trustScore.cached ? 'Cached' : 'Fresh'} • {new Date(trustScore.timestamp * 1000).toLocaleString()}
-          </span>
+        {/* Confidence & Risk Level */}
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <div className="bg-gray-50 rounded-lg p-3">
+            <div className="text-sm text-gray-600 mb-1">Risk Level</div>
+            <div className="font-medium">
+              {trustScore.score >= 80 ? 'Low Risk' : 
+               trustScore.score >= 50 ? 'Medium Risk' : 'High Risk'}
+            </div>
+          </div>
+          <div className="bg-gray-50 rounded-lg p-3">
+            <div className="text-sm text-gray-600 mb-1">Confidence</div>
+            <div className="font-medium">{Math.round(trustScore.confidence)}%</div>
+          </div>
+        </div>
+
+        {/* Timestamp */}
+        <div className="text-sm text-gray-500 mb-4">
+          {trustScore.cached ? 'Cached result' : 'Fresh analysis'} • {new Date(trustScore.timestamp * 1000).toLocaleString()}
         </div>
 
         {/* Explanation */}
@@ -215,15 +229,16 @@ export function TrustScoreCard({ walletAddress }: TrustScoreCardProps) {
                   <div className="flex justify-between items-center mb-1">
                     <span className="text-sm font-medium text-gray-700">{feature.feature}</span>
                     <span className="text-sm text-gray-500">
-                      {feature.impact > 0 ? '+' : ''}{feature.impact.toFixed(1)}
+                      {feature.normalizedValue.toFixed(1)}/100 (Weight: {feature.weight}%)
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div
                       className={`h-2 rounded-full ${
-                        feature.impact > 0 ? 'bg-green-500' : 'bg-red-500'
+                        feature.normalizedValue >= 60 ? 'bg-green-500' : 
+                        feature.normalizedValue >= 30 ? 'bg-yellow-500' : 'bg-red-500'
                       }`}
-                      style={{ width: `${Math.abs(feature.impact) * 10}%` }}
+                      style={{ width: `${feature.normalizedValue}%` }}
                     ></div>
                   </div>
                 </div>

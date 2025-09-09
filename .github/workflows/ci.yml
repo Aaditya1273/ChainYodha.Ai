@@ -77,8 +77,8 @@ jobs:
     - name: Build application
       run: npm run build
       env:
-        NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
-        NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ secrets.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID }}
+        NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL || secrets.NEXT_PUBLIC_API_URL }}
+        NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ vars.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || secrets.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID }}
 
   # Smart Contract Tests
   contracts-test:
@@ -250,8 +250,8 @@ jobs:
         npm ci
         npm run build
       env:
-        NEXT_PUBLIC_API_URL: ${{ secrets.PROD_API_URL }}
-        NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ secrets.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID }}
+        NEXT_PUBLIC_API_URL: ${{ vars.PROD_API_URL || secrets.PROD_API_URL }}
+        NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ vars.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || secrets.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID }}
     
     - name: Create deployment artifact
       run: |

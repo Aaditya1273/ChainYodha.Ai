@@ -4,23 +4,23 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, Index } from 
 @Index(["walletAddress", "createdAt"])
 export class ScoreHistory {
   @PrimaryGeneratedColumn()
-  id: number
+  id!: number
 
   @Column({ type: "varchar", length: 42 })
   @Index()
-  walletAddress: string
+  walletAddress!: string
 
   @Column({ type: "integer", width: 3 })
-  score: number
+  score!: number
 
   @Column({ type: "integer" })
-  timestamp: number
+  timestamp!: number
 
   @Column({ type: "varchar", length: 66 })
-  source: string
+  source!: string
 
   @Column({ type: "json" })
-  breakdown: {
+  breakdown!: {
     feature: string
     weight: number
     value: number
@@ -28,8 +28,8 @@ export class ScoreHistory {
   }[]
 
   @Column({ type: "text", nullable: true })
-  explanation: string
+  explanation!: string
 
-  @CreateDateColumn()
-  createdAt: Date
+  @CreateDateColumn({ type: "datetime" })
+  createdAt!: Date
 }

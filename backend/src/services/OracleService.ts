@@ -1,5 +1,9 @@
 import { ethers } from "ethers"
 import { logger } from "../utils/logger"
+import dotenv from "dotenv"
+
+// Load environment variables
+dotenv.config()
 
 export class OracleService {
   private wallet: ethers.Wallet
@@ -7,6 +11,10 @@ export class OracleService {
   private contract: ethers.Contract
 
   constructor() {
+    // Debug: Log environment variable status
+    logger.info(`Environment check - ORACLE_PRIVATE_KEY exists: ${!!process.env.ORACLE_PRIVATE_KEY}`)
+    logger.info(`Environment check - TRUST_ORACLE_CONTRACT exists: ${!!process.env.TRUST_ORACLE_CONTRACT}`)
+
     // Initialize provider
     const rpcUrl = process.env.ARB_SEPOLIA_RPC || "https://sepolia-rollup.arbitrum.io/rpc"
     this.provider = new ethers.JsonRpcProvider(rpcUrl)
@@ -14,14 +22,30 @@ export class OracleService {
     // Initialize wallet
     const privateKey = process.env.ORACLE_PRIVATE_KEY
     if (!privateKey) {
+      logger.error("ORACLE_PRIVATE_KEY not found in environment variables")
+      logger.error("Available env vars:", Object.keys(process.env).filter(key => key.includes('ORACLE')))
       throw new Error("ORACLE_PRIVATE_KEY not set in environment")
     }
+
+    // Validate private key format
+    if (!privateKey.startsWith('0x') || privateKey.length !== 66) {
+      logger.error("Invalid ORACLE_PRIVATE_KEY format. Should be 64 hex characters with 0x prefix")
+      throw new Error("Invalid ORACLE_PRIVATE_KEY format")
+    }
+
     this.wallet = new ethers.Wallet(privateKey, this.provider)
 
     // Initialize contract
     const contractAddress = process.env.TRUST_ORACLE_CONTRACT
     if (!contractAddress) {
+      logger.error("TRUST_ORACLE_CONTRACT not found in environment variables")
       throw new Error("TRUST_ORACLE_CONTRACT not set in environment")
+    }
+
+    // Validate contract address format
+    if (!ethers.isAddress(contractAddress)) {
+      logger.error("Invalid TRUST_ORACLE_CONTRACT address format")
+      throw new Error("Invalid TRUST_ORACLE_CONTRACT address format")
     }
 
     // ABI for the TrustOracle contract
@@ -35,6 +59,10 @@ export class OracleService {
     ]
 
     this.contract = new ethers.Contract(contractAddress, contractABI, this.wallet)
+    
+    logger.info(`OracleService initialized successfully`)
+    logger.info(`Oracle wallet address: ${this.wallet.address}`)
+    logger.info(`Contract address: ${contractAddress}`)
   }
 
   async signScore(
@@ -147,5 +175,18 @@ export class OracleService {
   async getBalance(): Promise<string> {
     const balance = await this.provider.getBalance(this.wallet.address)
     return ethers.formatEther(balance)
+  }
+
+  // Utility method to check environment setup
+  static checkEnvironment(): boolean {
+    const required = ['ORACLE_PRIVATE_KEY', 'TRUST_ORACLE_CONTRACT']
+    const missing = required.filter(key => !process.env[key])
+    
+    if (missing.length > 0) {
+      logger.error(`Missing required environment variables: ${missing.join(', ')}`)
+      return false
+    }
+    
+    return true
   }
 }

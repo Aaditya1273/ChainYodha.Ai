@@ -4,29 +4,29 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateCol
 @Index(["walletAddress"], { unique: true })
 export class TrustScore {
   @PrimaryGeneratedColumn()
-  id: number
+  id!: number
 
   @Column({ type: "varchar", length: 42 })
   @Index()
-  walletAddress: string
+  walletAddress!: string
 
   @Column({ type: "integer", width: 3 })
-  score: number
+  score!: number
 
   @Column({ type: "integer" })
-  timestamp: number
+  timestamp!: number
 
   @Column({ type: "varchar", length: 66 })
-  source: string
+  source!: string
 
   @Column({ type: "varchar", length: 66 })
-  metadataHash: string
+  metadataHash!: string
 
   @Column({ type: "text" })
-  signature: string
+  signature!: string
 
   @Column({ type: "json", nullable: true })
-  breakdown: {
+  breakdown!: {
     feature: string
     weight: number
     value: number
@@ -34,17 +34,17 @@ export class TrustScore {
   }[]
 
   @Column({ type: "text", nullable: true })
-  explanation: string
+  explanation!: string
 
   @Column({ type: "boolean", default: false })
-  submittedOnchain: boolean
+  submittedOnchain!: boolean
 
   @Column({ type: "varchar", length: 66, nullable: true })
-  transactionHash: string
+  transactionHash!: string
 
-  @CreateDateColumn()
-  createdAt: Date
+  @CreateDateColumn({ type: "datetime" })
+  createdAt!: Date
 
-  @UpdateDateColumn()
-  updatedAt: Date
+  @UpdateDateColumn({ type: "datetime" })
+  updatedAt!: Date
 }

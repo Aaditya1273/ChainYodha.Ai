@@ -1,9 +1,6 @@
-import { Router } from "express"
-import { body, validationResult } from "express-validator"
-import { AppDataSource } from "../database/data-source"
-import { TrustScore } from "../database/entities/TrustScore"
-import { WalletProfile } from "../database/entities/WalletProfile"
-import { ScoreHistory } from "../database/entities/ScoreHistory"
+import { Router, Request, Response } from "express"
+const { body, validationResult } = require("express-validator")
+import { simpleStorage } from "../database/simple-storage"
 import { FeatureExtractor } from "../services/FeatureExtractor"
 import { TrustScorer } from "../services/TrustScorer"
 import { OracleService } from "../services/OracleService"
@@ -22,7 +19,7 @@ router.post(
     body("wallet").isEthereumAddress().withMessage("Invalid Ethereum address"),
     body("optionalSignals").optional().isObject().withMessage("Optional signals must be an object"),
   ],
-  async (req, res) => {
+  async (req: Request, res: Response) => {
     try {
       // Validate input
       const errors = validationResult(req)
@@ -38,26 +35,20 @@ router.post(
 
       logger.info(`Computing trust score for wallet: ${walletAddress}`)
 
-      // Check if we have a recent score (within 1 hour)
-      const trustScoreRepo = AppDataSource.getRepository(TrustScore)
-      const existingScore = await trustScoreRepo.findOne({
-        where: { walletAddress },
-        order: { updatedAt: "DESC" },
-      })
-
-      const oneHourAgo = Date.now() - 60 * 60 * 1000
-      if (existingScore && existingScore.updatedAt.getTime() > oneHourAgo) {
-        logger.info(`Returning cached score for ${walletAddress}`)
-        return res.json({
-          score: existingScore.score,
-          breakdown: existingScore.breakdown,
-          explanation: existingScore.explanation,
-          metadataHash: existingScore.metadataHash,
-          signature: existingScore.signature,
-          timestamp: existingScore.timestamp,
-          cached: true,
-        })
-      }
+      // Skip cache for now to always compute fresh scores with full details
+      // const existingScore = await simpleStorage.findTrustScoreByAddress(walletAddress)
+      // const oneHourAgo = Date.now() - 60 * 60 * 1000
+      // if (existingScore && existingScore.updatedAt && existingScore.updatedAt.getTime() > oneHourAgo) {
+      //   logger.info(`Returning cached score for ${walletAddress}`)
+      //   return res.json({
+      //     score: existingScore.overallScore,
+      //     breakdown: existingScore.breakdown || [],
+      //     explanation: existingScore.explanation || "Cached trust score result",
+      //     confidence: existingScore.confidence || 0,
+      //     timestamp: Math.floor((existingScore.updatedAt?.getTime() || 0) / 1000),
+      //     cached: true,
+      //   })
+      // }
 
       // Extract features
       const onchainFeatures = await featureExtractor.extractOnchainFeatures(walletAddress)
@@ -88,56 +79,54 @@ router.post(
       const source = ethers.keccak256(ethers.toUtf8Bytes("chainyodha-ai-v1"))
       const signature = await oracleService.signScore(walletAddress, scoreResult.score, timestamp, source, metadataHash)
 
-      // Save to database
-      const walletProfileRepo = AppDataSource.getRepository(WalletProfile)
-      const scoreHistoryRepo = AppDataSource.getRepository(ScoreHistory)
-
       // Update wallet profile
-      let walletProfile = await walletProfileRepo.findOne({ where: { walletAddress } })
-      if (!walletProfile) {
-        walletProfile = new WalletProfile()
-        walletProfile.walletAddress = walletAddress
+      let walletProfile = await simpleStorage.findWalletProfileByAddress(walletAddress)
+      if (walletProfile) {
+        // Update existing profile
+        await simpleStorage.updateWalletProfile(walletAddress, {
+          totalTransactions: onchainFeatures.totalTransactions || 0,
+          avgTransactionValue: onchainFeatures.averageTransactionValue || 0,
+          uniqueContracts: onchainFeatures.uniqueContractsInteracted || 0,
+          gasEfficiency: 0, // Not available in OnchainFeatures
+          timeSpread: 0, // Not available in OnchainFeatures
+          riskLevel: 'low', // Default risk level
+          classification: 'fresh', // Default classification
+        })
+      } else {
+        // Create new profile
+        await simpleStorage.createWalletProfile({
+          walletAddress,
+          totalTransactions: onchainFeatures.totalTransactions || 0,
+          avgTransactionValue: onchainFeatures.averageTransactionValue || 0,
+          uniqueContracts: onchainFeatures.uniqueContractsInteracted || 0,
+          gasEfficiency: 0, // Not available in OnchainFeatures
+          timeSpread: 0, // Not available in OnchainFeatures
+          riskLevel: 'low', // Default risk level
+          classification: 'fresh', // Default classification
+        })
       }
-
-      // Update profile with extracted features
-      Object.assign(walletProfile, onchainFeatures, enhancedOffchainFeatures)
-      walletProfile.lastAnalyzed = new Date()
-      await walletProfileRepo.save(walletProfile)
 
       // Save or update trust score
-      if (existingScore) {
-        existingScore.score = scoreResult.score
-        existingScore.timestamp = timestamp
-        existingScore.source = source
-        existingScore.metadataHash = metadataHash
-        existingScore.signature = signature
-        existingScore.breakdown = scoreResult.breakdown
-        existingScore.explanation = scoreResult.explanation
-        existingScore.submittedOnchain = false
-        await trustScoreRepo.save(existingScore)
-      } else {
-        const newScore = new TrustScore()
-        newScore.walletAddress = walletAddress
-        newScore.score = scoreResult.score
-        newScore.timestamp = timestamp
-        newScore.source = source
-        newScore.metadataHash = metadataHash
-        newScore.signature = signature
-        newScore.breakdown = scoreResult.breakdown
-        newScore.explanation = scoreResult.explanation
-        newScore.submittedOnchain = false
-        await trustScoreRepo.save(newScore)
+      // Extract breakdown values from the array
+      const getBreakdownValue = (feature: string) => {
+        const item = scoreResult.breakdown.find(b => b.feature === feature)
+        return item ? item.normalizedValue * 100 : 0
       }
 
+      await simpleStorage.createTrustScore({
+        walletAddress,
+        overallScore: scoreResult.score,
+        transactionHistory: getBreakdownValue('transactionHistory'),
+        contractInteraction: getBreakdownValue('contractInteractions'),
+        riskAssessment: getBreakdownValue('portfolioStability'),
+        networkActivity: getBreakdownValue('accountAge'),
+      })
+
       // Save to history
-      const historyEntry = new ScoreHistory()
-      historyEntry.walletAddress = walletAddress
-      historyEntry.score = scoreResult.score
-      historyEntry.timestamp = timestamp
-      historyEntry.source = source
-      historyEntry.breakdown = scoreResult.breakdown
-      historyEntry.explanation = scoreResult.explanation
-      await scoreHistoryRepo.save(historyEntry)
+      await simpleStorage.createScoreHistory({
+        walletAddress,
+        score: scoreResult.score,
+      })
 
       logger.info(`Trust score computed successfully for ${walletAddress}: ${scoreResult.score}`)
 

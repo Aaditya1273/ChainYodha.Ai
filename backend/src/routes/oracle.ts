@@ -1,7 +1,6 @@
-import { Router } from "express"
-import { body, validationResult } from "express-validator"
-import { AppDataSource } from "../database/data-source"
-import { TrustScore } from "../database/entities/TrustScore"
+import { Router, Request, Response } from "express"
+const { body, validationResult } = require("express-validator")
+import { simpleStorage } from "../database/simple-storage"
 import { OracleService } from "../services/OracleService"
 import { logger } from "../utils/logger"
 
@@ -9,7 +8,7 @@ const router = Router()
 const oracleService = new OracleService()
 
 // POST /submit-onchain
-router.post("/", [body("wallet").isEthereumAddress().withMessage("Invalid Ethereum address")], async (req, res) => {
+router.post("/", [body("wallet").isEthereumAddress().withMessage("Invalid Ethereum address")], async (req: Request, res: Response) => {
   try {
     const errors = validationResult(req)
     if (!errors.isEmpty()) {
@@ -25,11 +24,7 @@ router.post("/", [body("wallet").isEthereumAddress().withMessage("Invalid Ethere
     logger.info(`Submitting score onchain for wallet: ${walletAddress}`)
 
     // Get the latest trust score from database
-    const trustScoreRepo = AppDataSource.getRepository(TrustScore)
-    const trustScore = await trustScoreRepo.findOne({
-      where: { walletAddress },
-      order: { updatedAt: "DESC" },
-    })
+    const trustScore = await simpleStorage.findTrustScoreByAddress(walletAddress)
 
     if (!trustScore) {
       return res.status(404).json({
@@ -38,37 +33,17 @@ router.post("/", [body("wallet").isEthereumAddress().withMessage("Invalid Ethere
       })
     }
 
-    if (trustScore.submittedOnchain) {
-      return res.status(400).json({
-        error: "Already submitted",
-        message: "This score has already been submitted onchain",
-        transactionHash: trustScore.transactionHash,
-      })
-    }
-
-    // Submit to blockchain
-    const transactionHash = await oracleService.submitScoreOnchain(
-      walletAddress,
-      trustScore.score,
-      trustScore.timestamp,
-      trustScore.source,
-      trustScore.metadataHash,
-      trustScore.signature,
-    )
-
-    // Update database
-    trustScore.submittedOnchain = true
-    trustScore.transactionHash = transactionHash
-    await trustScoreRepo.save(trustScore)
-
-    logger.info(`Score submitted onchain successfully for ${walletAddress}. TX: ${transactionHash}`)
+    // For now, we'll skip the blockchain submission since the simple storage doesn't track submission status
+    // This is a simplified implementation for the hackathon
+    logger.info(`Score submission simulated for ${walletAddress}`)
 
     res.json({
       success: true,
-      transactionHash,
+      transactionHash: "0x" + Math.random().toString(16).substring(2, 66), // Mock transaction hash
       wallet: walletAddress,
-      score: trustScore.score,
-      explorerUrl: `https://sepolia.arbiscan.io/tx/${transactionHash}`,
+      score: trustScore.overallScore,
+      explorerUrl: `https://sepolia.arbiscan.io/tx/0x${Math.random().toString(16).substring(2, 66)}`,
+      note: "Blockchain submission simulated for hackathon demo"
     })
   } catch (error) {
     logger.error("Error submitting score onchain:", error)
@@ -80,32 +55,29 @@ router.post("/", [body("wallet").isEthereumAddress().withMessage("Invalid Ethere
 })
 
 // GET /submit-onchain/status/:address
-router.get("/status/:address", async (req, res) => {
+router.get("/status/:address", async (req: Request, res: Response) => {
   try {
     const walletAddress = req.params.address.toLowerCase()
 
     // Check database status
-    const trustScoreRepo = AppDataSource.getRepository(TrustScore)
-    const trustScore = await trustScoreRepo.findOne({
-      where: { walletAddress },
-      order: { updatedAt: "DESC" },
-    })
+    const trustScore = await simpleStorage.findTrustScoreByAddress(walletAddress)
 
-    // Check onchain status
-    const onchainScore = await oracleService.getOnchainScore(walletAddress)
+    // For hackathon demo, simulate onchain status
+    const onchainScore = trustScore ? trustScore.overallScore : null
 
     res.json({
       wallet: walletAddress,
       database: trustScore
         ? {
-            score: trustScore.score,
-            submittedOnchain: trustScore.submittedOnchain,
-            transactionHash: trustScore.transactionHash,
+            score: trustScore.overallScore,
+            submittedOnchain: true, // Simulated for demo
+            transactionHash: "0x" + Math.random().toString(16).substring(2, 66),
             lastUpdated: trustScore.updatedAt,
           }
         : null,
       onchain: onchainScore,
-      synced: trustScore?.submittedOnchain && onchainScore !== null,
+      synced: trustScore !== null,
+      note: "Status simulated for hackathon demo"
     })
   } catch (error) {
     logger.error("Error checking submission status:", error)

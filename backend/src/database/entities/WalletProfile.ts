@@ -4,32 +4,32 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateCol
 @Index(["walletAddress"], { unique: true })
 export class WalletProfile {
   @PrimaryGeneratedColumn()
-  id: number
+  id!: number
 
   @Column({ type: "varchar", length: 42 })
   @Index()
-  walletAddress: string
+  walletAddress!: string
 
   @Column({ type: "integer", default: 0 })
-  totalTransactions: number
+  totalTransactions!: number
 
   @Column({ type: "integer", default: 0 })
-  contractInteractions: number
+  contractInteractions!: number
 
   @Column({ type: "decimal", precision: 18, scale: 8, default: 0 })
-  averageTransactionValue: number
+  averageTransactionValue!: number
 
   @Column({ type: "integer", default: 0 })
-  uniqueContractsInteracted: number
+  uniqueContractsInteracted!: number
 
   @Column({ type: "integer", default: 0 })
-  swapFrequency: number
+  swapFrequency!: number
 
   @Column({ type: "integer", default: 0 })
-  bridgeTransactions: number
+  bridgeTransactions!: number
 
   @Column({ type: "json", nullable: true })
-  topTokens: {
+  topTokens!: {
     address: string
     symbol: string
     balance: string
@@ -37,26 +37,26 @@ export class WalletProfile {
   }[]
 
   @Column({ type: "decimal", precision: 10, scale: 4, default: 0 })
-  portfolioVolatility: number
+  portfolioVolatility!: number
 
   @Column({ type: "boolean", default: false })
-  hasENS: boolean
+  hasENS!: boolean
 
   @Column({ type: "integer", default: 0 })
-  farcasterFollowers: number
+  farcasterFollowers!: number
 
   @Column({ type: "integer", default: 0 })
-  githubContributions: number
+  githubContributions!: number
 
   @Column({ type: "integer", default: 0 })
-  accountAge: number
+  accountAge!: number
 
-  @Column({ type: "timestamp", nullable: true })
-  lastAnalyzed: Date
+  @Column({ type: "datetime", nullable: true })
+  lastAnalyzed!: Date
 
-  @CreateDateColumn()
-  createdAt: Date
+  @CreateDateColumn({ type: "datetime" })
+  createdAt!: Date
 
-  @UpdateDateColumn()
-  updatedAt: Date
+  @UpdateDateColumn({ type: "datetime" })
+  updatedAt!: Date
 }
