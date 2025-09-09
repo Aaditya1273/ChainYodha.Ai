@@ -1,6 +1,4 @@
-import { VercelRequest, VercelResponse } from '@vercel/node'
-
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(req: any, res: any) {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
@@ -13,6 +11,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const { url, method } = req
+    console.log('Request URL:', url, 'Method:', method)
 
     // Health check
     if (url === '/api/health' || url === '/health') {
@@ -24,7 +23,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // Score endpoint
-    if (url === '/api/score' || url === '/score') {
+    if (url?.includes('/score') || url === '/api/score') {
       if (method === 'POST') {
         const { wallet } = req.body || {}
         
