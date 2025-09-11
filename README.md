@@ -1,4 +1,4 @@
-# ChainYodha.Ai
+# ChainYodha.Ai:
 
 An onchain AI-powered trust & risk scoring infrastructure for Web3 on Arbitrum.
 
